@@ -14,18 +14,36 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Create directory structure
+RUN mkdir -p /app/backend/agents /app/backend/executor /app/backend/schemas /app/frontend
+
 # Install Python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . .
+# Copy backend files
+COPY main.py /app/backend/main.py
+COPY dataset_analyzer.py /app/backend/agents/dataset_analyzer.py
+COPY planner.py /app/backend/agents/planner.py
+COPY explainer.py /app/backend/agents/explainer.py
+COPY executor.py /app/backend/executor/executor.py
+COPY plan_validator.py /app/backend/schemas/plan_validator.py
+COPY config.py /app/backend/config.py
 
-# Expose ports
+# Copy frontend files
+COPY app.py /app/frontend/app.py
+
+# Create empty __init__.py files for Python modules
+RUN touch /app/backend/__init__.py \
+    /app/backend/agents/__init__.py \
+    /app/backend/executor/__init__.py \
+    /app/backend/schemas/__init__.py
+
+# Expose port (Hugging Face expects 7860)
 EXPOSE 7860
 
 # Start backend + frontend
 CMD sh -c "\
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 & \
-streamlit run frontend/app.py --server.port=7860 --server.address=0.0.0.0 \
+cd /app/backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 & \
+cd /app/frontend && streamlit run app.py --server.port=7860 --server.address=0.0.0.0 \
 "
