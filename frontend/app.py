@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-import requests
+
+# ✅ IMPORT FASTAPI LOGIC DIRECTLY (NO HTTP)
+from backend.main import analyze_dataframe
 
 # ==================================================
-# CONFIG
+# PAGE CONFIG
 # ==================================================
-BACKEND_URL = "http://127.0.0.1:8000/analyze"
-
-
 st.set_page_config(
     page_title="AI Data Analyst Agent",
     page_icon="📊",
@@ -22,7 +21,6 @@ st.markdown("""
 .main {
     background-color: #f8f9fa;
 }
-
 .card {
     background-color: white;
     padding: 1.25rem;
@@ -30,16 +28,13 @@ st.markdown("""
     box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
     margin-bottom: 1.2rem;
 }
-
 h1, h2, h3 {
     color: #1f2937;
 }
-
 div.stButton > button {
     border-radius: 8px;
     font-weight: 600;
 }
-
 div[data-testid="stAlert"] {
     border-radius: 8px;
 }
@@ -61,7 +56,7 @@ st.markdown("""
 
 🔹 Upload any CSV  
 🔹 Ask analytical questions  
-🔹 Backend powered by FastAPI  
+🔹 Planner–Executor–Explainer Architecture  
 """)
 
 st.divider()
@@ -88,15 +83,15 @@ with st.sidebar:
 # ==================================================
 if uploaded_file:
     try:
-        df_preview = pd.read_csv(uploaded_file, encoding="utf-8")
+        df = pd.read_csv(uploaded_file, encoding="utf-8")
     except UnicodeDecodeError:
-        df_preview = pd.read_csv(uploaded_file, encoding="latin1")
+        df = pd.read_csv(uploaded_file, encoding="latin1")
 
     # ---------------- Dataset Preview ----------------
     st.markdown('<div class="card">', unsafe_allow_html=True)
     with st.expander("📋 Dataset Preview", expanded=True):
-        st.dataframe(df_preview.head(20), use_container_width=True)
-        st.caption(f"📊 Total: {df_preview.shape[0]:,} rows × {df_preview.shape[1]} columns")
+        st.dataframe(df.head(20), use_container_width=True)
+        st.caption(f"📊 Total: {df.shape[0]:,} rows × {df.shape[1]} columns")
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ---------------- Question Input ----------------
@@ -120,48 +115,31 @@ if uploaded_file:
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==================================================
-    # ANALYSIS (API CALL)
+    # ANALYSIS (DIRECT FUNCTION CALL)
     # ==================================================
     if analyze_clicked and question:
         try:
-            with st.spinner("🚀 Sending request to backend..."):
-                response = requests.post(
-                    BACKEND_URL,
-                    data={"question": question},
-                    files={
-                        "file": (
-                            uploaded_file.name,
-                            uploaded_file.getvalue(),
-                            "text/csv"
-                        )
-                    },
-                    timeout=300
-                )
+            with st.spinner("🚀 Analyzing dataset..."):
 
-            if response.status_code != 200:
-                st.error("❌ Backend error")
-                st.text(response.text)
-                st.stop()
-
-            data = response.json()
+                result = analyze_dataframe(df, question)
 
             # ---------------- DATASET INFO ----------------
-            if data["type"] == "dataset_info":
+            if result["type"] == "dataset_info":
                 st.markdown('<div class="card">', unsafe_allow_html=True)
                 st.markdown("### 📄 Dataset Information")
-                st.dataframe(pd.DataFrame(data["table"]), use_container_width=True)
+                st.dataframe(result["table"], use_container_width=True)
                 st.success("💡 Dataset Insights")
-                st.markdown(data["insight"])
+                st.markdown(result["insight"])
                 st.markdown('</div>', unsafe_allow_html=True)
                 st.stop()
 
             # ---------------- ANALYSIS RESULTS ----------------
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 🧠 Analysis Plan")
-            st.json(data["plan"])
+            st.json(result["plan"])
             st.markdown('</div>', unsafe_allow_html=True)
 
-            result_df = pd.DataFrame(data["results"])
+            result_df = result["results"]
 
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown("### 📊 Results")
@@ -170,19 +148,19 @@ if uploaded_file:
 
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.success("💡 Key Insights")
-            st.markdown(data["insight"])
+            st.markdown(result["insight"])
             st.markdown('</div>', unsafe_allow_html=True)
 
             # ---------------- SAVE HISTORY ----------------
             st.session_state.history.append({
                 "question": question,
-                "plan": data["plan"],
+                "plan": result["plan"],
                 "result": result_df,
-                "insight": data["insight"]
+                "insight": result["insight"]
             })
 
         except Exception as e:
-            st.error("❌ Failed to connect to backend")
+            st.error("❌ Analysis failed")
             st.exception(e)
 
     # ==================================================
