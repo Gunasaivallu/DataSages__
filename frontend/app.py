@@ -1,184 +1,104 @@
 import streamlit as st
 import pandas as pd
+import requests
 
-# ✅ IMPORT FASTAPI LOGIC DIRECTLY (NO HTTP)
-from backend.main import analyze_dataframe
+# ------------------------------
+# CONFIG (LOCALHOST)
+# ------------------------------
+BACKEND_URL = "http://localhost:8000/analyze"
 
-# ==================================================
-# PAGE CONFIG
-# ==================================================
 st.set_page_config(
     page_title="AI Data Analyst Agent",
     page_icon="📊",
     layout="wide"
 )
 
-# ==================================================
-# CUSTOM CSS
-# ==================================================
-st.markdown("""
-<style>
-.main {
-    background-color: #f8f9fa;
-}
-.card {
-    background-color: white;
-    padding: 1.25rem;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
-    margin-bottom: 1.2rem;
-}
-h1, h2, h3 {
-    color: #1f2937;
-}
-div.stButton > button {
-    border-radius: 8px;
-    font-weight: 600;
-}
-div[data-testid="stAlert"] {
-    border-radius: 8px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ==================================================
+# ------------------------------
 # SESSION STATE
-# ==================================================
+# ------------------------------
 if "history" not in st.session_state:
     st.session_state.history = []
 
-# ==================================================
+# ------------------------------
 # HEADER
-# ==================================================
-st.markdown("""
-# 📊 AI Data Analyst Agent  
-**Ask questions in plain English and get precise insights from your dataset.**
+# ------------------------------
+st.title("📊 AI Data Analyst Agent")
+st.caption("Ask questions in plain English and get insights from your CSV")
 
-🔹 Upload any CSV  
-🔹 Ask analytical questions  
-🔹 Planner–Executor–Explainer Architecture  
-""")
-
-st.divider()
-
-# ==================================================
+# ------------------------------
 # SIDEBAR
-# ==================================================
+# ------------------------------
 with st.sidebar:
-    st.header("📁 Upload Dataset")
-
-    uploaded_file = st.file_uploader(
-        "Upload a CSV file",
-        type=["csv"]
-    )
-
-    st.markdown("---")
-
+    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
     if st.button("🧹 Clear History"):
         st.session_state.history = []
-        st.success("Session history cleared!")
+        st.success("History cleared")
 
-# ==================================================
-# MAIN CONTENT
-# ==================================================
+# ------------------------------
+# MAIN
+# ------------------------------
 if uploaded_file:
-    try:
-        df = pd.read_csv(uploaded_file, encoding="utf-8")
-    except UnicodeDecodeError:
-        df = pd.read_csv(uploaded_file, encoding="latin1")
-
-    # ---------------- Dataset Preview ----------------
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    with st.expander("📋 Dataset Preview", expanded=True):
-        st.dataframe(df.head(20), use_container_width=True)
-        st.caption(f"📊 Total: {df.shape[0]:,} rows × {df.shape[1]} columns")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # ---------------- Question Input ----------------
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown("### 🧠 Ask a Data Question")
+    df = pd.read_csv(uploaded_file)
+    st.dataframe(df.head())
 
     question = st.text_input(
-        "",
-        placeholder="e.g. Which country has the highest and lowest population?"
+        "Ask a data question",
+        placeholder="e.g. Which country has the highest population?"
     )
 
-    analyze_col, clear_col = st.columns([1, 1])
+    if st.button("🚀 Analyze") and question:
+        with st.spinner("Sending request to backend..."):
 
-    with analyze_col:
-        analyze_clicked = st.button("🚀 Analyze", use_container_width=True)
+            # ✅ EXACT REQUEST YOU ASKED FOR
+            response = requests.post(
+                "http://localhost:8000/analyze",
+                data={"question": question},
+                files={
+                    "file": (
+                        uploaded_file.name,
+                        uploaded_file.getvalue(),
+                        "text/csv"
+                    )
+                },
+                timeout=300
+            )
 
-    with clear_col:
-        if st.button("🧹 Clear Input"):
-            st.rerun()
+        if response.status_code != 200:
+            st.error("❌ Backend error")
+            st.text(response.text)
+            st.stop()
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        data = response.json()
 
-    # ==================================================
-    # ANALYSIS (DIRECT FUNCTION CALL)
-    # ==================================================
-    if analyze_clicked and question:
-        try:
-            with st.spinner("🚀 Analyzing dataset..."):
+        if data["type"] == "dataset_info":
+            st.subheader("📄 Dataset Information")
+            st.dataframe(pd.DataFrame(data["table"]))
+            st.success(data["insight"])
+            st.stop()
 
-                result = analyze_dataframe(df, question)
+        st.subheader("🧠 Analysis Plan")
+        st.json(data["plan"])
 
-            # ---------------- DATASET INFO ----------------
-            if result["type"] == "dataset_info":
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown("### 📄 Dataset Information")
-                st.dataframe(result["table"], use_container_width=True)
-                st.success("💡 Dataset Insights")
-                st.markdown(result["insight"])
-                st.markdown('</div>', unsafe_allow_html=True)
-                st.stop()
+        result_df = pd.DataFrame(data["results"])
+        st.subheader("📊 Results")
+        st.dataframe(result_df)
 
-            # ---------------- ANALYSIS RESULTS ----------------
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("### 🧠 Analysis Plan")
-            st.json(result["plan"])
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.success(data["insight"])
 
-            result_df = result["results"]
+        st.session_state.history.append({
+            "question": question,
+            "plan": data["plan"],
+            "result": result_df,
+            "insight": data["insight"]
+        })
 
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("### 📊 Results")
-            st.dataframe(result_df, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.success("💡 Key Insights")
-            st.markdown(result["insight"])
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            # ---------------- SAVE HISTORY ----------------
-            st.session_state.history.append({
-                "question": question,
-                "plan": result["plan"],
-                "result": result_df,
-                "insight": result["insight"]
-            })
-
-        except Exception as e:
-            st.error("❌ Analysis failed")
-            st.exception(e)
-
-    # ==================================================
-    # HISTORY
-    # ==================================================
-    if st.session_state.history:
-        st.markdown("## 🕘 Analysis History")
-
-        for idx, item in enumerate(reversed(st.session_state.history), 1):
-            with st.expander(f"Query {idx}: {item['question']}"):
-                st.markdown("**🧠 Analysis Plan**")
-                st.json(item["plan"])
-
-                st.markdown("**📊 Results**")
-                st.dataframe(item["result"].head(10), use_container_width=True)
-
-                st.markdown("**💡 Answer**")
-                st.markdown(item["insight"])
-
-else:
-    st.info("👈 Upload a CSV file from the sidebar to begin analysis")
+# ------------------------------
+# HISTORY
+# ------------------------------
+if st.session_state.history:
+    st.markdown("## 🕘 Analysis History")
+    for item in reversed(st.session_state.history):
+        with st.expander(item["question"]):
+            st.json(item["plan"])
+            st.dataframe(item["result"])
+            st.markdown(item["insight"])
