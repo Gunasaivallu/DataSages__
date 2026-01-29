@@ -1,11 +1,11 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
-from agents.planner import PlannerAgent
-from agents.explainer import ExplainerAgent
-from agents.dataset_analyzer import analyze_dataset
-from executor.executor import execute_plan
-from schemas.plan_validator import validate_plan
+from planner import PlannerAgent
+from explainer import ExplainerAgent
+from dataset_analyzer import analyze_dataset
+from executor import execute_plan
+from plan_validator import validate_plan
 
 app = FastAPI(title="AI Data Analyst Backend")
 
