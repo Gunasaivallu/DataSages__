@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
-
 from agents.planner import PlannerAgent
 from agents.explainer import ExplainerAgent
 from agents.dataset_analyzer import analyze_dataset
@@ -10,13 +9,9 @@ from schemas.plan_validator import validate_plan
 
 app = FastAPI(title="AI Data Analyst Backend")
 
-# ------------------------------
-# CORS (LOCAL)
-# ------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -24,16 +19,7 @@ app.add_middleware(
 planner = PlannerAgent()
 explainer = ExplainerAgent()
 
-# ------------------------------
-# HEALTH CHECK
-# ------------------------------
-@app.get("/")
-def health():
-    return {"status": "ok"}
 
-# ------------------------------
-# HELPER
-# ------------------------------
 def is_dataset_info_query(question: str) -> bool:
     keywords = [
         "dataset information",
@@ -46,9 +32,7 @@ def is_dataset_info_query(question: str) -> bool:
     ]
     return any(k in question.lower() for k in keywords)
 
-# ------------------------------
-# ANALYZE ENDPOINT
-# ------------------------------
+
 @app.post("/analyze")
 async def analyze(
     question: str = Form(...),
@@ -56,6 +40,7 @@ async def analyze(
 ):
     df = pd.read_csv(file.file)
 
+    # Dataset info
     if is_dataset_info_query(question):
         info_df = analyze_dataset(df)
         insight = explainer.explain_dataset(df)
@@ -65,10 +50,16 @@ async def analyze(
             "insight": insight
         }
 
+    # Planner
     plan = planner.generate_plan(list(df.columns), question)
+
+    # Validator
     validate_plan(plan, list(df.columns))
 
+    # Executor
     result_df, _, _ = execute_plan(df, plan)
+
+    # Explainer
     insight = explainer.explain(question, result_df, plan)
 
     return {
