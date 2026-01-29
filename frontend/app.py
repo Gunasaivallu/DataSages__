@@ -5,7 +5,7 @@ import requests
 # ==================================================
 # CONFIG
 # ==================================================
-BACKEND_URL = "http://127.0.0.1:8000/analyze"
+BACKEND_URL = "http://localhost:8000/analyze"
 
 
 st.set_page_config(
