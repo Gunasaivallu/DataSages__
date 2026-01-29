@@ -1,33 +1,28 @@
-# ------------------------------------
-# Single Container: Frontend + Backend
-# ------------------------------------
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Environment settings
+# Core environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+# This fixes the ModuleNotFoundError
+ENV PYTHONPATH=/app 
 
-# Install OS dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire project
+# Copy all code
 COPY . .
 
-# Expose ports
-EXPOSE 8000 8501
+# Hugging Face Spaces uses 7860 by default
+EXPOSE 7860
 
-# Start both FastAPI and Streamlit
+# Start Backend on 8000 and Frontend on 7860
 CMD sh -c "\
 python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 & \
-streamlit run frontend/app.py --server.port=8501 --server.address=0.0.0.0 \
+streamlit run frontend/app.py --server.port=7860 --server.address=0.0.0.0 \
 "
