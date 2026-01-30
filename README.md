@@ -50,7 +50,7 @@ This design significantly improves **trustworthiness, safety, and reproducibilit
 The system is implemented as a **two-tier architecture** consisting of a Streamlit frontend and a FastAPI backend, connected via a REST API.
 
 ### Architectural Flow
-
+```
 - **User (Streamlit UI)**
           ↓
 - **FastAPI Backend (`/analyze`)**
@@ -66,6 +66,7 @@ The system is implemented as a **two-tier architecture** consisting of a Streaml
 - **Structured Results + Natural Language Insights**
           ↓
 - **Streamlit UI Display**
+```
 
 
 ### Key Architectural Principle
@@ -160,23 +161,26 @@ Dataset overview queries (e.g., *“Describe the dataset”*) were evaluated sep
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
+```
 ### 2️⃣ Environment Variables
 
 Create a `.env` file using `.env.example`:
 
 ```env
 GROQ_API_KEY=your_api_key_here
+```
 
 ### 3️⃣ Start Backend (FastAPI)
 
 ```bash
 uvicorn src.main:app --host 0.0.0.0 --port 8000
+```
 
 ### 4️⃣ Start Frontend (Streamlit)
 
 ```bash
 streamlit run frontend/app.py
+```
 
 ### 5️⃣ Usage
 
@@ -192,6 +196,7 @@ streamlit run frontend/app.py
 ```bash
 docker build -t ai-data-analyst .
 docker run -p 8000:8000 ai-data-analyst
+```
 
 ## Appendix A: Project Structure
 
@@ -239,3 +244,4 @@ Datasages/
 ├── .env.example
 └── README.md
 
+```
