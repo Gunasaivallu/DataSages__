@@ -1,5 +1,3 @@
-
-
 ---
 title: AI Data Analyst Agent
 emoji: 📊
@@ -14,7 +12,7 @@ pinned: false
 
 
 
-# PROJECT TITLE: AI Data Analyst Agent (CSV-Based Analysis)
+# 📊 AI Data Analyst Agent for CSV-Based Analysis
 
 **Employee Name:** Gunasaivallu
 
@@ -22,206 +20,220 @@ pinned: false
 
 ## 1. Research Question / Hypothesis
 
-Can a Planner–Validator–Executor–Explainer architecture powered by Large Language Models enable **reproducible, safe, and structured analysis of CSV datasets**, while preventing hallucinated computations and non-deterministic execution?
+Can a **Planner–Validator–Executor–Explainer architecture**, powered by Large Language Models (LLMs), enable **safe, reproducible, and structured analysis of CSV datasets**, while preventing hallucinated computations and non-deterministic execution commonly observed in end-to-end LLM data analysis systems?
 
 ---
 
 ## 2. Motivation and Relevance
 
-While LLMs are increasingly used for data analysis, many existing systems suffer from:
+Large Language Models are increasingly used for data analysis tasks. However, many existing systems:
 
-* Non-deterministic execution
-* Hidden or opaque computation steps
-* Hallucinated results presented as facts
+- Hallucinate numerical results  
+- Generate unverifiable reasoning steps  
+- Directly execute LLM-generated code on user data  
+- Produce non-reproducible outputs  
 
-This project addresses these issues by **strictly separating reasoning from execution**. LLMs are used only for planning and explanation, while all computations are performed deterministically using Pandas. This design mirrors real-world requirements for trustworthy analytics systems in enterprise and decision-support environments.
+These issues pose significant risks in analytical and decision-making contexts.
 
----
+This project addresses these challenges by enforcing a **strict separation between reasoning and execution**, ensuring that:
 
-## 3. Project Overview
+- LLMs are used **only for planning and explanation**
+- All numerical computations are performed **deterministically using pandas**
+- Every analytical step is **validated before execution**
 
-This project implements an AI-powered Data Analyst Agent that performs structured, reproducible data analysis on user-uploaded CSV files.
-
-The system allows users to ask analytical questions in natural language and automatically:
-
-* Generates a structured JSON analysis plan
-* Validates the plan against a strict schema
-* Executes the plan deterministically using Pandas
-* Produces tables and visualizations
-* Explains results in clear, human-readable language
-
-The application is delivered as an interactive **Streamlit web interface**.
+This design significantly improves **trustworthiness, safety, and reproducibility**.
 
 ---
 
-## 4. System Architecture
+## 3. System Architecture
 
-**Architecture Pattern:** Planner → Validator → Executor → Explainer
+The system is implemented as a **two-tier architecture** consisting of a Streamlit frontend and a FastAPI backend, connected via a REST API.
 
-**Execution Flow:**
-User → Streamlit UI → Planner Agent → Plan Validator → Executor → Explainer Agent → Results
+### Architectural Flow
 
-### Component Responsibilities
+- **User (Streamlit UI)**
+  ↓
+- **FastAPI Backend (`/analyze`)**
+  ↓
+- **Planner Agent (LLM)**
+  ↓
+- **Plan Validator (Schema Enforcement)**
+  ↓
+- **Executor (Deterministic pandas Execution)**
+  ↓
+- **Explainer Agent (LLM)**
+  ↓
+- **Structured Results + Natural Language Insights**
 
-* **Planner Agent:** Converts natural-language questions into structured JSON analysis plans
-* **Validator:** Ensures the plan uses only allowed operations and valid columns
-* **Executor:** Performs deterministic computations using Pandas and Plotly
-* **Explainer Agent:** Generates natural-language insights from numerical outputs
 
-The LLM never directly accesses or manipulates the dataset.
+### Key Architectural Principle
 
----
-
-## 5. Models and Versions Used
-
-* **LLaMA 3.1 – 8B Instant** (via Groq API)
-
-  * Used for planning and explanation
-  * Temperature controlled to reduce variability
-
-No fine-tuning was performed.
-
----
-
-## 6. Prompting Strategy
-
-* Structured system prompts enforcing JSON-only output
-* Explicit schema instructions for allowed operations
-* Defensive parsing and validation
-* No free-form code generation
-
-This approach minimizes hallucinations and enforces predictable planner behavior.
+> **LLMs never perform numerical computation.**  
+> All calculations are executed deterministically using pandas after schema validation.
 
 ---
 
-## 7. Evaluation Protocol
+## 4. Model(s) and Versions Used
 
-Evaluation was conducted using:
+- **Large Language Model:** Groq-hosted LLM  
+- **Usage Scope:**
+  - Planner Agent → generates structured analysis plans  
+  - Explainer Agent → generates natural language explanations  
+- **Execution Engine:** pandas (Python)  
+- **Backend Framework:** FastAPI  
+- **Frontend Framework:** Streamlit  
 
-* **Automated evaluation:** Verification of aggregation, filtering, grouping, and sorting correctness
-* **Human evaluation:** Assessment of clarity and usefulness of generated insights
-
-All evaluation configurations are defined declaratively in `experiments/*.yaml` and referenced in `report.pdf`.
-
----
-
-## 8. Key Results
-
-* Deterministic execution across repeated runs
-* High accuracy for aggregation and comparison queries
-* Clear separation between reasoning and execution logic
-
-Detailed results and analysis are provided in **Sections 4–6 of `report.pdf`**.
+The executor and validator layers are entirely **LLM-independent**.
 
 ---
 
-## 9. Limitations and Ethical Considerations
+## 5. Prompting and/or Fine-Tuning Strategy
 
-### Limitations
+### Prompting Strategy
 
-* Planner accuracy depends on LLM reliability
-* Complex multi-step queries may require iterative planning
+#### Planner Agent
+- Receives dataset column names and the user question  
+- Produces a structured, machine-readable analysis plan (JSON)  
+- Explicitly constrained to allowed operations  
+
+#### Explainer Agent
+- Receives execution results and the validated plan  
+- Generates descriptive, human-readable insights  
+- **Forbidden from generating numerical values**
+
+### Fine-Tuning
+
+- No fine-tuning was performed  
+- The system relies on **prompt constraints and architectural enforcement** rather than model retraining
+
+---
+
+## 6. Evaluation Protocol
+
+The system was evaluated using multiple CSV datasets and analytical queries, focusing on:
+
+- Numerical correctness of results  
+- Absence of hallucinated values  
+- Schema validation effectiveness  
+- Reproducibility across repeated runs  
+- Explainability of outputs  
+
+Dataset overview queries (e.g., *“Describe the dataset”*) were evaluated separately to ensure correct routing without invoking the planner–executor pipeline.
+
+---
+
+## 7. Key Results
+
+- ✅ Zero hallucinated numerical outputs  
+- ✅ Fully deterministic and reproducible execution  
+- ✅ Clear reasoning trace via structured analysis plans  
+- ✅ Safe handling of arbitrary CSV files  
+- ✅ Improved interpretability through explicit explanations  
+
+*(Results are derived from system execution logs and evaluation notebooks in the `notebooks/` directory.)*
+
+---
+
+## 8. Known Limitations and Ethical Considerations
+
+### Known Limitations
+- Supports only CSV file format  
+- Single-table analysis only  
+- In-memory execution limits scalability for very large datasets  
+- Limited visualization support (tabular outputs only)  
 
 ### Ethical Considerations
-
-* No private or sensitive data is used
-* Users provide their own datasets
-* Execution is restricted to predefined safe operations
+- No training or storage of user data  
+- No external data sources accessed  
+- Deterministic execution prevents misleading or fabricated results  
+- User datasets remain session-scoped  
 
 ---
 
-## 10. Installation Steps
+## 9. Exact Instructions to Reproduce Results
 
-1. Clone the repository
-
-```bash
-git clone <your-repository-url>
-cd ai-data-analyst
-```
-
-2. Create a virtual environment (recommended)
+### 1️⃣ Environment Setup
 
 ```bash
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-```
-
-3. Install dependencies
-
-```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-4. Set environment variables
-   Create a `.env` file in the project root:
+### 2️⃣ Environment Variables
+
+Create a `.env` file using `.env.example`:
 
 ```env
-GROQ_API_KEY=your_groq_api_key_here
-```
+GROQ_API_KEY=your_api_key_here
 
----
-
-## 11. How to Run the Application
+### 3️⃣ Start Backend (FastAPI)
 
 ```bash
-streamlit run app.py
-```
+uvicorn src.main:app --host 0.0.0.0 --port 8000
 
-Then open the URL shown in the terminal (usually [http://localhost:8501](http://localhost:8501)).
+### 4️⃣ Start Frontend (Streamlit)
 
----
+```bash
+streamlit run frontend/app.py
 
-## 12. Example Queries
+### 5️⃣ Usage
 
-* Compare total SALES by COUNTRY
-* Show average SALES for each REGION
-* Show sales distribution
-* Find correlation between SALES and PROFIT
-* Describe the dataset
-* Give dataset summary
+- Upload a CSV file  
+- Ask a natural language analytical question  
+- View:
+  - Generated analysis plan  
+  - Deterministic results  
+  - Natural language explanation  
 
----
+### 6️⃣ Optional: Docker
 
-## 13. Features
+```bash
+docker build -t ai-data-analyst .
+docker run -p 8000:8000 ai-data-analyst
 
-* CSV file upload and preview
-* Natural language query interface
-* JSON-based analysis planning
-* Schema validation for safety
-* Deterministic Pandas execution
-* Interactive visualizations (Plotly)
-* AI-generated insights
-* Dataset-level metadata and insights
+## Appendix A: Project Structure
 
----
+```text
+Datasages/
+│
+├── data/                       # Sample CSV datasets
+│   ├── Book1.csv
+│   └── population_by_country_2020.csv
+│
+├── experiments/                # Experiment configurations
+│   ├── exp_01.yaml
+│   └── exp_02.yaml
+│
+├── frontend/
+│   ├── __init__.py
+│   └── app.py                  # Streamlit UI
+│
+├── notebooks/                  # Exploration & evaluation notebooks
+│   ├── 01_exploration.ipynb
+│   └── 02_evaluation.ipynb
+│
+├── src/
+│   ├── agents/
+│   │   ├── planner.py          # LLM-based planner
+│   │   ├── explainer.py        # LLM-based explainer
+│   │   └── dataset_analyzer.py # Dataset summary logic
+│   │
+│   ├── executor/
+│   │   └── executor.py         # Deterministic pandas execution
+│   │
+│   ├── schemas/
+│   │   └── plan_validator.py   # Plan validation rules
+│   │
+│   ├── utils/
+│   │   └── __init__.py
+│   │
+│   ├── config.py               # Model & environment config
+│   └── main.py                 # FastAPI backend entry point
+│
+├── Dockerfile
+├── requirements.txt
+├── project.yaml
+├── reproducibility.md
+├── .env.example
+└── README.md
 
-## 14. Reproducibility Notes
-
-* Fixed random seeds are used where applicable
-* Execution logic is fully deterministic
-* Known nondeterminism is limited to LLM generation
-
-Full details are documented in `reproducibility.md`.
-
----
-
-## 15. Use of Generative Tools (Disclosure)
-
-Generative AI tools were used for:
-
-* Code scaffolding
-* Prompt design
-* Documentation drafting
-
-All outputs were reviewed and validated manually.
-
----
-
-## 16. Technology Stack
-
-**Language:** Python
-**LLM:** Groq API (LLaMA 3.1 – 8B Instant)
-**Data Processing:** Pandas
-**Visualization:** Plotly
-**UI:** Streamlit
-**Validation & Safety:** Custom JSON schema validation
