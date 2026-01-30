@@ -51,21 +51,21 @@ The system is implemented as a **two-tier architecture** consisting of a Streaml
 
 ### Architectural Flow
 ```
-- **User (Streamlit UI)**
+  User (Streamlit UI)
           ↓
-- **FastAPI Backend (`/analyze`)**
+FastAPI Backend (`/analyze`)
           ↓
-- **Planner Agent (LLM)**
+  Planner Agent (LLM)
           ↓
-- **Plan Validator (Schema Enforcement)**
+Plan Validator (Schema Enforcement)
           ↓
-- **Executor (Deterministic pandas Execution)**
+Executor (Deterministic pandas Execution)
           ↓
-- **Explainer Agent (LLM)**
+  Explainer Agent (LLM)
           ↓
-- **Structured Results + Natural Language Insights**
+Structured Results + Natural Language Insights
           ↓
-- **Streamlit UI Display**
+  Streamlit UI Display
 ```
 
 
