@@ -3,6 +3,10 @@ name: planner_determinism_evaluation
 model: llama-3.1-8b-instant
 
 planner_temperature: 0.0
+planner_output_format: json
+planner_constraints:
+  - no_code_execution
+  - schema_validated
 
 executor_engine: pandas
 
@@ -10,6 +14,14 @@ visualization_library: plotly
 
 explainer: enabled
 
-evaluation_focus: robustness_across_queries
+evaluation:
+  focus: robustness_across_queries
+  metrics:
+    - plan_consistency
+    - execution_success_rate
+  num_runs: 10
+
+dataset:
+  type: csv
 
 seed: 42
