@@ -3,11 +3,23 @@ name: baseline_planner_executor_explainer
 model: llama-3.1-8b-instant
 
 planner_temperature: 0.0
+planner_output_format: json
+planner_constraints:
+  - no_code_execution
+  - schema_validated
 
 executor_engine: pandas
+executor_constraints:
+  allow_only:
+    - pandas
+  time_limit_seconds: 30
 
 visualization_library: plotly
 
 explainer: enabled
+
+dataset:
+  type: csv
+  missing_value_strategy: ignore
 
 seed: 42
